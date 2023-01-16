@@ -8,8 +8,10 @@ output: html_document
 ```{r DGEA, include=FALSE}
 library(ggplot2) # create plots for the presentation
 library(pcaMethods) # Bioconductor PCA methods
+library(RNASeqPower)
 library(limma) # differential gene expression analysis (DGEA)
 library(biomaRt) # download gene annotations from Ensembl
+library(pheatmap)
 ```
 
 ## Load MAGnet and Ensembl Datasets
@@ -51,7 +53,7 @@ design <- model.matrix(~0+etiology + gender + age, data=sampleInfo)
 
 ```{r contrasts}
 # create contrasts for the linear model from the design matrix
-contrasts <- makeContrasts(contrasts=c("etiologyDCM-etiologyNF"), levels=colnames(design))
+contrasts <- makeContrasts(contrasts=c("etiologyDCM-etiologyNF", "etiologyHCM-etiologyNF"), levels=colnames(design))
 ```
 
 $$
@@ -88,6 +90,28 @@ genes <- genes[genes$adj.P.Val < 5E-2,]
 genes <- genes[abs(genes$logFC) > 1.5,]
 head(genes)
 ```
+$$
+FPKM=\frac{\text{total reads mapped to gene} * 10^3}{\text{gene length in bp}} 
+$$
+
+```{r convert}
+cpm2fpkm <- function(x) {
+  .t <- 2^(x) * 1E3 / exonLength[, 1]
+}
+gxData.fpkm <- cpm2fpkm(gxData)
+```
+
+```{r annotation}
+# calculate average FPKM per etiology
+colnames(gxData.fpkm) <- sampleInfo$etiology
+gxData.avg <- t(rowsum(t(gxData.fpkm), names(gxData.fpkm))/c(table(names(gxData.fpkm))))
+
+# download common gene names short, description and from biomart
+annotations <- getBM(attributes=c('ensembl_gene_id', 'hgnc_symbol', 'description', 'chromosome_name'), filters = 'ensembl_gene_id', values = rownames(genes), mart = ensembl)
+
+annotations <- merge(annotations, gxData.avg, by.x="ensembl_gene_id", by.y="row.names")
+annotations <- merge(annotations, genes, by.x="ensembl_gene_id", by.y="row.names")
+```
 
 ## Gene Correlation Network Analysis
 
@@ -118,7 +142,7 @@ threshold_corr <- round(as.numeric(threshold_corr),digits=4)
 ```
 
 ```{r}
-corr <- ggplot(edge_list, aes(x=correlation)) +
+ggplot(edge_list, aes(x=correlation)) +
   geom_histogram() +
   labs(
     title="",
@@ -127,8 +151,6 @@ corr <- ggplot(edge_list, aes(x=correlation)) +
     x = "",
     y = ""
   )
-
-corr + theme_bw()
 ```
 
 ```{r}
@@ -181,4 +203,14 @@ getAPCCdistribution(cartography$attribute)
 ```{r}
 attribute_switch <- getSwitch(cartography$attribute)
 getHeatCartography(cartography$attribute)
+```
+
+```{r heatmap}
+df <- gxData.avg[attribute_switch$node,]
+rownames(annotations) <- annotations$ensembl_gene_id
+df <- annotations[rownames(df),][1:38,]
+rownames(df) <- df$hgnc_symbol
+df <- df[,c("NF","DCM","HCM","PPCM")]
+
+pheatmap(df, scale = 'row', show_rownames = TRUE)
 ```
