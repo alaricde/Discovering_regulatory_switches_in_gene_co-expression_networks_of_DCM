@@ -133,24 +133,19 @@ sapply(switchminer, source)
 data <- gxData[rownames(genes), (sampleInfo$etiology == 'NF') | (sampleInfo$etiology == 'DCM')]
 
 # options: c("pearson", "spearman"), c("holm", "hochberg", "hommel", "bonferroni", "BH", "BY", "fdr", "none")
-edge_list <- computeCorrelation(data, "spearman", "fdr")
+type_correlation <- "spearman"
+correction_method <- "fdr"
+
+edge_list <- computeCorrelation(data, type_correlation , correction_method)
 
 threshold_prc_corr <- 0.9
 
+corr_edge_list <- computeCorrelation(data,type_correlation,correction_method)
 threshold_corr <- quantile(edge_list$correlation, threshold_prc_corr)
 threshold_corr <- round(as.numeric(threshold_corr),digits=4)
-```
 
-```{r}
-ggplot(edge_list, aes(x=correlation)) +
-  geom_histogram() +
-  labs(
-    title="",
-    subtitle="",
-    tag="Figure 1",
-    x = "",
-    y = ""
-  )
+
+getHistogram(corr_edge_list$correlation,threshold_corr,title="Edge-Weight Gene Corrrelation Network","Correlation")  
 ```
 
 ```{r}
