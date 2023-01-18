@@ -112,6 +112,9 @@ annotations <- getBM(attributes=c('ensembl_gene_id', 'hgnc_symbol', 'description
 annotations <- merge(annotations, gxData.avg, by.x="ensembl_gene_id", by.y="row.names")
 annotations <- merge(annotations, genes, by.x="ensembl_gene_id", by.y="row.names")
 ```
+```{r annotation}
+getVolcano(table,1.5,0.05)
+```
 
 ## Gene Correlation Network Analysis
 
