@@ -1,5 +1,5 @@
 # System Biology 22-23 Project
-Group name: Megnat Miners
+Group name: Magnet Miners
 Project: Analysing RNA sequencing of heart biopsies
 
 Important pre-work:
